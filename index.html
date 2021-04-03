@@ -29,7 +29,7 @@ var path = d3.geoPath()
 
 // Load world shape AND list of connection
 d3.queue()
-  .defer(d3.json, "world.geojson")  // World shape
+  .defer(d3.json, "https://6859-sp21.github.io/a4-asylum-journeys/world.geojson")  // World shape
   .defer(d3.csv, "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/data_connectionmap.csv") // Position of circles
   .await(ready);
 
