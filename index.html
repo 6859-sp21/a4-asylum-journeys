@@ -27,7 +27,7 @@ var projection = d3.geoMercator()
 var path = d3.geoPath()
     .projection(projection)
 
-function join(lookupTable, mainTable, lookupKey, mainKey, select) {
+function join(lookupTable, mainTable, lookupKey, mainKey1, mainKey2, select) {
     var l = lookupTable.length,
         m = mainTable.length,
         lookupIndex = [],
@@ -36,11 +36,12 @@ function join(lookupTable, mainTable, lookupKey, mainKey, select) {
         var row = lookupTable[i];
         lookupIndex[row[lookupKey].trim()] = row; // create an index for lookup table
     }
-    console.log(lookupIndex)
+    //console.log(lookupIndex)
     for (var j = 0; j < m; j++) { // loop through m items
         var y = mainTable[j];
-        var x = lookupIndex[y[mainKey]]; // get corresponding row from lookupTable
-        output.push(select(y, x)); // select only the columns you need
+        var x = lookupIndex[y[mainKey1]]; // get corresponding row from lookupTable
+        var z = lookupIndex[y[mainKey2]]; // get corresponding row from lookupTable
+        output.push(select(y, x, z)); // select only the columns you need
     }
     return output;
 };
@@ -48,32 +49,38 @@ function join(lookupTable, mainTable, lookupKey, mainKey, select) {
 // Load world shape AND list of connection
 d3.queue()
   .defer(d3.json, "https://6859-sp21.github.io/a4-asylum-journeys/world.geojson")  // World shape
-  .defer(d3.csv, "https://6859-sp21.github.io/a4-asylum-journeys/test_connection.csv") // Connections
+  .defer(d3.csv, "https://6859-sp21.github.io/a4-asylum-journeys/asylum_decisions_residing_world.csv") // Connections (asylum_decisions_residing_world)
   .defer(d3.csv, "https://6859-sp21.github.io/a4-asylum-journeys/countries_codes_and_coordinates.csv") // Country center coordinates
   .await(ready);
 
 function ready(error, dataGeo, dataConn, dataCoord) {
 
-    var data = join(dataCoord, dataConn, "Alpha-3 code", "Country of Asylum Code", function(connection, country) {
-      //console.log(country['Longitude (average)'])
-      //console.log(country['Country'])
+    var data = join(dataCoord, dataConn, "Alpha-3 code", "Country of Origin Code", "Country of Asylum Code", function(connection, origin, dest) {
       return {
-        long1: 0,
-        lat1: 0,
-        long2: (country !== undefined) ? parseFloat(country['Longitude (average)']) : 1,
-        lat2: (country !== undefined) ? parseFloat(country['Latitude (average)']): 1,
-        country: (country !== undefined) ? parseFloat(country['Country']): 'null',
+        long1: (origin !== undefined) ? parseFloat(origin['Longitude (average)']) : 1,
+        lat1: (origin !== undefined) ? parseFloat(origin['Latitude (average)']): 1,
+        long2: (dest !== undefined) ? parseFloat(dest['Longitude (average)']) : 1,
+        lat2: (dest !== undefined) ? parseFloat(dest['Latitude (average)']): 1,
+        origin: (origin !== undefined) ? origin['Country']: 'null',
+        dest: (dest !== undefined) ? dest['Country']: 'null',
+        decided: +connection['Total Decided'],
+        year: +connection['Year'],
       }
     });
+
+    
+    // Filter to only include movements from Syria
+    data = data.filter(function(d) {return d.origin === 'Syrian Arab Republic'})
+    console.log(data)
+    
     // Reformat the list of link. Note that columns in csv file are called long1, long2, lat1, lat2
     var link = []
     data.forEach(function(row){
-      source = [+row.long1, +row.lat1]
-      target = [+row.long2, +row.lat2]
-      topush = {type: "LineString", coordinates: [source, target]}
-      link.push(topush)
-    })
-    console.log(link)
+        source = [+row.long1, +row.lat1]
+        target = [+row.long2, +row.lat2]
+        topush = {type: "LineString", coordinates: [source, target]}
+        link.push(topush)
+      })
 
     // Draw the map
     svg.append("g")
