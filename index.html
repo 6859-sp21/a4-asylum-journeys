@@ -7,6 +7,7 @@
 <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
 <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
 
+<input type="range" name="yearSlider" id="yearSlider" min="2000" max="2020" value="2000" width="600">
 <!-- Create an element where the map will take place -->
 <svg id="my_dataviz" width="600" height="500"></svg>
 
@@ -68,41 +69,55 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       }
     });
 
-    
+
     // Filter to only include movements from Syria
     data = data.filter(function(d) {return d.origin === 'Syrian Arab Republic'})
     console.log(data)
-    
+
     // Reformat the list of link. Note that columns in csv file are called long1, long2, lat1, lat2
-    var link = []
-    data.forEach(function(row){
-        source = [+row.long1, +row.lat1]
-        target = [+row.long2, +row.lat2]
-        topush = {type: "LineString", coordinates: [source, target]}
-        link.push(topush)
-      })
+    updateYear(2000)
 
-    // Draw the map
-    svg.append("g")
-        .selectAll("path")
-        .data(dataGeo.features)
-        .enter().append("path")
-            .attr("fill", "#b8b8b8")
-            .attr("d", d3.geoPath()
-                .projection(projection)
-            )
-            .style("stroke", "#fff")
-            .style("stroke-width", 0)
+    function updateYear(year) {
+      console.log("Updated to " + year)
+      // update the chart
+      var link = []
+      data
+        .filter(function(d) {return d.year == year})
+        .forEach(function(row){
+          source = [+row.long1, +row.lat1]
+          target = [+row.long2, +row.lat2]
+          topush = {type: "LineString", coordinates: [source, target]}
+          link.push(topush)
+        })
 
-    // Add the path
-    svg.selectAll("myPath")
-      .data(link)
-      .enter()
-      .append("path")
-        .attr("d", function(d){ return path(d)})
-        .style("fill", "none")
-        .style("stroke", "#69b3a2")
-        .style("stroke-width", 2)
+      // Draw the map
+      svg.append("g")
+          .selectAll("path")
+          .data(dataGeo.features)
+          .enter().append("path")
+              .attr("fill", "#b8b8b8")
+              .attr("d", d3.geoPath()
+                  .projection(projection)
+              )
+              .style("stroke", "#fff")
+              .style("stroke-width", 0)
+
+      // Add the path
+      svg.selectAll("myPath")
+        .data(link)
+        .enter()
+        .append("path")
+          .attr("d", function(d){ return path(d)})
+          .style("fill", "none")
+          .style("stroke", "#69b3a2")
+          .style("stroke-width", 2)
+    }
+
+    // year slider update
+    d3.select("#yearSlider").on("input", function(){
+      console.log("year changed")
+      updateYear(+this.value)
+    })
 
 }
 
