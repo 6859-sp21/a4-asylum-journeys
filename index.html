@@ -27,14 +27,44 @@ var projection = d3.geoMercator()
 var path = d3.geoPath()
     .projection(projection)
 
+function join(lookupTable, mainTable, lookupKey, mainKey, select) {
+    var l = lookupTable.length,
+        m = mainTable.length,
+        lookupIndex = [],
+        output = [];
+    for (var i = 0; i < l; i++) { // loop through l items
+        var row = lookupTable[i];
+        lookupIndex[row[lookupKey].trim()] = row; // create an index for lookup table
+    }
+    console.log(lookupIndex)
+    for (var j = 0; j < m; j++) { // loop through m items
+        var y = mainTable[j];
+        var x = lookupIndex[y[mainKey]]; // get corresponding row from lookupTable
+        output.push(select(y, x)); // select only the columns you need
+    }
+    return output;
+};
+
 // Load world shape AND list of connection
 d3.queue()
   .defer(d3.json, "https://6859-sp21.github.io/a4-asylum-journeys/world.geojson")  // World shape
-  .defer(d3.csv, "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/data_connectionmap.csv") // Position of circles
+  .defer(d3.csv, "https://6859-sp21.github.io/a4-asylum-journeys/test_connection.csv") // Connections
+  .defer(d3.csv, "https://6859-sp21.github.io/a4-asylum-journeys/countries_codes_and_coordinates.csv") // Country center coordinates
   .await(ready);
 
-function ready(error, dataGeo, data) {
+function ready(error, dataGeo, dataConn, dataCoord) {
 
+    var data = join(dataCoord, dataConn, "Alpha-3 code", "Country of Asylum Code", function(connection, country) {
+      //console.log(country['Longitude (average)'])
+      //console.log(country['Country'])
+      return {
+        long1: 0,
+        lat1: 0,
+        long2: (country !== undefined) ? parseFloat(country['Longitude (average)']) : 1,
+        lat2: (country !== undefined) ? parseFloat(country['Latitude (average)']): 1,
+        country: (country !== undefined) ? parseFloat(country['Country']): 'null',
+      }
+    });
     // Reformat the list of link. Note that columns in csv file are called long1, long2, lat1, lat2
     var link = []
     data.forEach(function(row){
@@ -43,6 +73,7 @@ function ready(error, dataGeo, data) {
       topush = {type: "LineString", coordinates: [source, target]}
       link.push(topush)
     })
+    console.log(link)
 
     // Draw the map
     svg.append("g")
