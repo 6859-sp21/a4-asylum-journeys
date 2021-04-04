@@ -56,16 +56,22 @@ d3.queue()
 
 function ready(error, dataGeo, dataConn, dataCoord) {
 
+    // Join and reformat data 
     var data = join(dataCoord, dataConn, "Alpha-3 code", "Country of Origin Code", "Country of Asylum Code", function(connection, origin, dest) {
+        long1 = (origin !== undefined) ? parseFloat(origin['Longitude (average)']) : 1
+        lat1  = (origin !== undefined) ? parseFloat(origin['Latitude (average)']): 1
+        long2 = (dest !== undefined) ? parseFloat(dest['Longitude (average)']) : 1
+        lat2  = (dest !== undefined) ? parseFloat(dest['Latitude (average)']): 1
+        source = [+long1, +lat1]
+        target = [+long2, +lat2]
       return {
-        long1: (origin !== undefined) ? parseFloat(origin['Longitude (average)']) : 1,
-        lat1: (origin !== undefined) ? parseFloat(origin['Latitude (average)']): 1,
-        long2: (dest !== undefined) ? parseFloat(dest['Longitude (average)']) : 1,
-        lat2: (dest !== undefined) ? parseFloat(dest['Latitude (average)']): 1,
+        source: source,
+        target: target,
         origin: (origin !== undefined) ? origin['Country']: 'null',
         dest: (dest !== undefined) ? dest['Country']: 'null',
         decided: +connection['Total Decided'],
         year: +connection['Year'],
+        coordinates: [source, target]
       }
     });
 
@@ -74,43 +80,39 @@ function ready(error, dataGeo, dataConn, dataCoord) {
     data = data.filter(function(d) {return d.origin === 'Syrian Arab Republic'})
     console.log(data)
 
-    // Reformat the list of link. Note that columns in csv file are called long1, long2, lat1, lat2
+    // Draw the map
+    svg.append("g")
+      .selectAll("path")
+      .data(dataGeo.features)
+      .enter().append("path")
+          .attr("fill", "#b8b8b8")
+          .attr("d", d3.geoPath()
+              .projection(projection)
+          )
+          .style("stroke", "#fff")
+          .style("stroke-width", 0)
+
+
     updateYear(2000)
 
     function updateYear(year) {
       console.log("Updated to " + year)
-      // update the chart
-      var link = []
-      data
-        .filter(function(d) {return d.year == year})
-        .forEach(function(row){
-          source = [+row.long1, +row.lat1]
-          target = [+row.long2, +row.lat2]
-          topush = {type: "LineString", coordinates: [source, target]}
-          link.push(topush)
-        })
+      // update the chart based on the year on the slider
+      const filteredLinks = data
+        .filter(d => d.year === year)
 
-      // Draw the map
-      svg.append("g")
-          .selectAll("path")
-          .data(dataGeo.features)
-          .enter().append("path")
-              .attr("fill", "#b8b8b8")
-              .attr("d", d3.geoPath()
-                  .projection(projection)
-              )
-              .style("stroke", "#fff")
-              .style("stroke-width", 0)
+      let update = svg.selectAll("myPath")
+          .data(filteredLinks)
 
-      // Add the path
-      svg.selectAll("myPath")
-        .data(link)
-        .enter()
+      update.enter()
         .append("path")
-          .attr("d", function(d){ return path(d)})
+          .attr("d", function(d){ return path({type:"LineString", coordinates:d.coordinates})})
           .style("fill", "none")
           .style("stroke", "#69b3a2")
           .style("stroke-width", 2)
+
+      update.exit()
+        .remove()
     }
 
     // year slider update
