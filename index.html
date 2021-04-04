@@ -25,6 +25,19 @@ body, html {
   height: 500px;
 }
 
+div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: auto;
+  height: auto;
+  padding: 2px;
+  font: 12px sans-serif;
+  /* background: lightsteelblue; */
+  border: 0px;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
 .myPath {
   stroke-dasharray: 1000;
   stroke-dashoffset: 1000;
@@ -142,14 +155,18 @@ function ready(error, dataGeo, dataConn, dataCoord) {
     updateYear(2000)
 
     function updateYear(year) {
-      const maxStrokeWidth = 30
+      const maxStrokeWidth = 15
       console.log("Updated to " + year)
       // update the chart based on the year on the slider
       var filteredLinks = data
         .filter(d => d.year === year)
       const pathScale = d3.scaleLinear()
-        .domain([0, 305000])
-        .range([1, maxStrokeWidth])
+        .domain([0, 10000])
+        .range([2, maxStrokeWidth])
+        
+      var tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
 
       var update = svg.selectAll(".myPath")
           .data(data).remove()
@@ -159,10 +176,34 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         .append("path")
           .attr("class", "myPath")
           .attr("d", function(d){ return path({type:"LineString", coordinates:d.coordinates})})
+          .attr("dest", d => d.dest)
+          .attr("decided", d => d.decided)
           .style("fill", "none")
           .style("stroke", "#69b3a2")
-          .style("stroke-width", d => pathScale(d.decided))    
-          
+          .style("stroke-width", d => pathScale(d.decided))
+          .style("opacity", .5)
+          .on("mouseover", function(event, d) {
+             tooltip.transition()
+               .duration(200)
+               .style("opacity", .9);
+             tooltip.html("Destination: " + d3.select(this).attr("dest") + "<br/> Number of refugees: " + d3.select(this).attr("decided"))
+               .style("left", (event.pageX) + "px")
+               //.style("background", colorScale(d.cluster))
+               .style("top", (event.pageY - 28) + "px");
+
+              d3.select(this)
+                .style("stroke-width", d => 15);
+             })
+           .on("mouseout", function(event, d) {
+             tooltip.transition()
+               .duration(500)
+               .style("opacity", 0);
+
+             d3.select(this)
+              .style("stroke-width", d => pathScale(d.decided));
+
+            });
+                    
       update.exit()
         .remove()
       }
