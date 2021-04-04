@@ -142,6 +142,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         target: target,
         origin: (origin !== undefined) ? origin['Country']: 'null',
         dest: (dest !== undefined) ? dest['Country']: 'null',
+        destID: (dest !== undefined) ? dest['Alpha-3 code']: 'null',
         decided: +connection['Total Decided'],
         year: +connection['Year'],
         coordinates: [source, target]
@@ -161,7 +162,8 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           decided: d3.sum(leaves, function(d){
               return d.decided;
             }),
-          coordinates: leaves[0].coordinates
+          coordinates: leaves[0].coordinates,
+          destID: leaves[0].destID
         };
     }).entries(data)
     .forEach(function(i) {
@@ -169,6 +171,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         newdata.push({
           year: i.key,
           dest: j.key,
+          destID: j.value.destID,
           decided: j.value.decided,
           coordinates: j.value.coordinates
         })
@@ -187,6 +190,9 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           .attr("d", d3.geoPath()
               .projection(projection)
           )
+          .attr("class", "country")
+          .attr("country-name", d => d.properties.name)
+          .attr("country-id", d => d.id)
           .style("stroke", "#fff")
           .style("stroke-width", 0)
 
@@ -221,36 +227,61 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           .attr("class", "myPath")
           .attr("d", function(d){ return path({type:"LineString", coordinates:d.coordinates})})
           .attr("dest", d => d.dest)
+          .attr("destID", d => d.destID.trim())
           .attr("decided", d => d.decided)
           .style("fill", "none")
           .style("stroke", "#69b3a2")
           .style("stroke-width", d => pathScale(d.decided))
           .style("opacity", .5)
-          .on("mouseover", function(event, d) {
-             tooltip.transition()
-               .duration(200)
-               .style("opacity", .9);
-             tooltip.html("Destination: " + d3.select(this).attr("dest") + "<br/> Number of refugees: " + d3.select(this).attr("decided"))
-               .style("left", (event.pageX) + "px")
-               //.style("background", colorScale(d.cluster))
-               .style("top", (event.pageY - 28) + "px");
-
-              d3.select(this)
-                .style("stroke-width", d => 15);
-             })
-           .on("mouseout", function(event, d) {
-             tooltip.transition()
-               .duration(500)
-               .style("opacity", 0);
-
-             d3.select(this)
-              .style("stroke-width", d => pathScale(d.decided));
-
-            });
                     
       update.exit()
         .remove()
-      }
+        // highlight path to country upon mouseover
+      svg
+        .selectAll("path")
+        .data(dataGeo.features)
+        .on("mouseover", function(event, d) {
+          countryID = d3.select(this).attr("country-id")
+          console.log(countryID)
+          countryPath = d3.select(".myPath[destID='"+ countryID + "']")
+          if (!countryPath.empty()) {
+            d3.select(this)
+              .style("stroke-width", 1)
+              .attr("fill", "#69b3a2")
+            countryPath
+              .style("stroke", "#000000")
+              .style("opacity", 1)
+            tooltip.transition()
+                 .duration(200)
+                 .style("opacity", .9);
+               tooltip.html("Destination: " + countryPath.attr("dest") + "<br/> Number of asylum requests: " + countryPath.attr("decided"))
+                 .style("left", (event.pageX) + "px")
+                 //.style("background", colorScale(d.cluster))
+                 .style("top", (event.pageY - 28) + "px");
+          }
+        })
+        .on("mouseout", function(event, d) {
+          countryID = d3.select(this).attr("country-id")
+          console.log(countryID)
+          countryPath = d3.select(".myPath[destID='"+ countryID + "']")
+          if (!countryPath.empty())
+          {
+            d3.select(this)
+              .style("stroke-width", 0)
+              .attr("fill", "#b8b8b8")
+            countryPath
+              .style("stroke", "#69b3a2")
+              .style("opacity", 1)
+            tooltip.transition()
+                 .duration(500)
+                 .style("opacity", 0);
+
+               countryPath
+                .style("stroke-width", d => pathScale(d.decided));
+          }
+        });
+      
+    }
 
     // Event listener for year slider updates
     d3.select("#yearSlider").on("input", function(){
