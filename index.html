@@ -7,6 +7,7 @@
 body, html {
   font-family: Helvetica, sans-serif;
   height: 90%;
+  text-align: center;
 }
 
 .wrap{
@@ -77,6 +78,8 @@ div.tooltip {
 
 
 <body>
+  <h1>Requests for Asylum by Syrian Refugees</h1>
+  <p> The Syrian civil war, which began in 2011, led to the greatest refugee crisis in history. Here's where those refugees sought asylum as the war dragged on...</p>
 <div class="wrap">
 <div id="line_chart"> </div>
 <div class="sliderBox">
@@ -115,7 +118,7 @@ var svg_line = d3.select("#line_chart")
       .append("svg")
       .append("g")
       .attr("transform",
-          "translate(" + 50 + "," + 10 + ")");
+          "translate(" + 70 + "," + 10 + ")");
 
 
 function join(lookupTable, mainTable, lookupKey, mainKey1, mainKey2, select) {
@@ -153,7 +156,10 @@ function ready(error, dataGeo, dataConn, dataCoord) {
               return d['Total Decided'];
             });
     }).entries(dataConn.filter(d => d["Country of Origin Code"] == "SYR"))
+
     console.log(lineData)
+
+    // Add x axis
     var x = d3.scaleLinear()
       .domain(d3.extent(lineData, function(d) { return +d.key; }))
       .range([ 0, width*0.88 ]);
@@ -167,6 +173,16 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       .range([ 100, 0 ]);
     svg_line.append("g")
       .call(d3.axisLeft(y));
+
+    // text label for the y axis
+    svg_line.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - 70)
+        .attr("x",0 - (100/ 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .style("font-size", "14px")
+        .text("Asylum Requests");  
 
     // Add the line
     svg_line.append("path")
