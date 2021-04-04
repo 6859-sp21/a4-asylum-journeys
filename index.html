@@ -152,6 +152,8 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         .range([1, maxStrokeWidth])
 
       var update = svg.selectAll(".myPath")
+          .data(data).remove()
+      update = svg.selectAll(".myPath")
           .data(filteredLinks)
       update.enter()
         .append("path")
