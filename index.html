@@ -16,6 +16,14 @@ body, html {
   margin: 10px auto;
 }
 
+.sliderBox {
+  width: 100%;
+  text-align: center;
+}
+
+#sliderValue {
+  width: 100%;
+}
 #yearSlider {
   width: 100%;
 }
@@ -61,7 +69,10 @@ div.tooltip {
 
 <body>
 <div class="wrap">
+<div class="sliderBox">
+<span id="sliderValue">Slide for year</span>
 <input type="range" name="yearSlider" id="yearSlider" min="2000" max="2020" value="2000">
+</div>
 <!-- Create an element where the map will take place -->
 <svg id="my_dataviz" ></svg>
 </div>
@@ -152,9 +163,12 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           .style("stroke-width", 0)
 
 
-    updateYear(2000)
+    updateYear(2000, false)
 
-    function updateYear(year) {
+    function updateYear(year, changeText) {
+      if (changeText) {
+        d3.select("#sliderValue").text(year)
+      }
       const maxStrokeWidth = 15
       console.log("Updated to " + year)
       // update the chart based on the year on the slider
@@ -211,7 +225,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
     // year slider update
     d3.select("#yearSlider").on("input", function(){
       console.log("year changed")
-      updateYear(+this.value)
+      updateYear(+this.value, true)
     })
 
 }
