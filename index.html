@@ -102,13 +102,14 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         .range([1, maxStrokeWidth])
       console.log("Updated to " + year)
       // update the chart based on the year on the slider
-      const filteredLinks = data
+      var filteredLinks = data
         .filter(d => d.year === year)
 
-      let update = svg.selectAll("myPath")
+      var update = svg.selectAll(".myPath")
           .data(filteredLinks)
       update.enter()
         .append("path")
+          .attr("class", "myPath")
           .attr("d", function(d){ return path({type:"LineString", coordinates:d.coordinates})})
           .style("fill", "none")
           .style("stroke", "#69b3a2")
