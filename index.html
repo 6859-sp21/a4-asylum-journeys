@@ -96,14 +96,14 @@ function ready(error, dataGeo, dataConn, dataCoord) {
     updateYear(2000)
 
     function updateYear(year) {
-      const maxStrokeWidth = 15
-      const pathScale = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.decided)])
-        .range([1, maxStrokeWidth])
+      const maxStrokeWidth = 30
       console.log("Updated to " + year)
       // update the chart based on the year on the slider
       var filteredLinks = data
         .filter(d => d.year === year)
+      const pathScale = d3.scaleLinear()
+        .domain([0, 305000])
+        .range([1, maxStrokeWidth])
 
       var update = svg.selectAll(".myPath")
           .data(filteredLinks)
@@ -115,10 +115,10 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           .style("stroke", "#69b3a2")
           .style("stroke-width", d => pathScale(d.decided))
           
+          
       update.exit()
         .remove()
-      update.transition().duration(1000)
-    }
+      }
 
     // year slider update
     d3.select("#yearSlider").on("input", function(){
