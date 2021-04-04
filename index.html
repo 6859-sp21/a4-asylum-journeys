@@ -98,6 +98,11 @@ var projection = d3.geoMercator()
 var path = d3.geoPath()
     .projection(projection)
 
+// Add a space for the tooltip on hover
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+
 function join(lookupTable, mainTable, lookupKey, mainKey1, mainKey2, select) {
     var l = lookupTable.length,
         m = mainTable.length,
@@ -177,10 +182,6 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       const pathScale = d3.scaleLinear()
         .domain([0, 10000])
         .range([2, maxStrokeWidth])
-        
-      var tooltip = d3.select("body").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0);
 
       var update = svg.selectAll(".myPath")
           .data(data).remove()
