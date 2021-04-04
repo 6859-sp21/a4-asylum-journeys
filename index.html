@@ -16,9 +16,18 @@ body, html {
   margin: 10px auto;
 }
 
+#line_chart {
+  width: 100%;
+  text-align: center;
+}
+
 .sliderBox {
   width: 100%;
   text-align: center;
+}
+
+#line_chart svg{
+  width: 100%;
 }
 
 #sliderValue {
@@ -69,6 +78,7 @@ div.tooltip {
 
 <body>
 <div class="wrap">
+<div id="line_chart"> </div>
 <div class="sliderBox">
 <span id="sliderValue">Slide for year</span>
 <input type="range" name="yearSlider" id="yearSlider" min="2000" max="2020" value="2000">
@@ -81,7 +91,7 @@ div.tooltip {
 
 <script>
 
-// The svg
+// The svg for map
 var svg = d3.select("svg");
 var wrap = d3.select(".wrap").node();
 var width = +wrap.getBoundingClientRect().width,
@@ -100,6 +110,13 @@ var path = d3.geoPath()
 var tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
+
+var svg_line = d3.select("#line_chart")
+      .append("svg")
+      .append("g")
+      .attr("transform",
+          "translate(" + 50 + "," + 10 + ")");
+
 
 function join(lookupTable, mainTable, lookupKey, mainKey1, mainKey2, select) {
     var l = lookupTable.length,
@@ -128,6 +145,39 @@ d3.queue()
   .await(ready);
 
 function ready(error, dataGeo, dataConn, dataCoord) {
+    // Add top line chart
+    var lineData = d3.nest()
+      .key(d => +d.Year)
+      .rollup(function(leaves){
+        return d3.sum(leaves, function(d){
+              return d['Total Decided'];
+            });
+    }).entries(dataConn.filter(d => d["Country of Origin Code"] == "SYR"))
+    console.log(lineData)
+    var x = d3.scaleLinear()
+      .domain(d3.extent(lineData, function(d) { return +d.key; }))
+      .range([ 0, width*0.88 ]);
+    svg_line.append("g")
+      .attr("transform", "translate(0," + 100 + ")")
+      .call(d3.axisBottom(x));
+
+    // Add Y axis
+    var y = d3.scaleLinear()
+      .domain([0, d3.max(lineData, function(d) { return +d.value; })])
+      .range([ 100, 0 ]);
+    svg_line.append("g")
+      .call(d3.axisLeft(y));
+
+    // Add the line
+    svg_line.append("path")
+      .datum(lineData)
+      .attr("fill", "none")
+      .attr("stroke", "steelblue")
+      .attr("stroke-width", 1.5)
+      .attr("d", d3.line()
+        .x(function(d) { return x(d.key) })
+        .y(function(d) { return y(+d.value) })
+        )
 
     // Join and reformat data 
     var data = join(dataCoord, dataConn, "Alpha-3 code", "Country of Origin Code", "Country of Asylum Code", function(connection, origin, dest) {
@@ -206,13 +256,26 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       }
       console.log("Updated to " + year)
 
+      svg_line.selectAll(".myCircles")
+        .data(lineData).remove();
+      svg_line.selectAll(".myCircles")
+        .data(lineData.filter(d => d.key == year))
+        .enter()
+        .append("circle")
+          .attr("class", "myCircles")
+          .attr("fill", "red")
+          .attr("stroke", "none")
+          .attr("cx", function(d) { return x(d.key) })
+          .attr("cy", function(d) { return y(d.value) })
+          .attr("r", 3)
+
       // Filter data to get only entries for the year
       var filteredLinks = data.filter(d => d.year == year)
       
       // Path width scaling
-      const maxStrokeWidth = 15
+      const maxStrokeWidth = 10
       const pathScale = d3.scaleLinear()
-        .domain([0, 400000])
+        .domain([1, 400000])
         .range([2, maxStrokeWidth])
 
       // Remove all previous paths
