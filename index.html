@@ -87,8 +87,6 @@ var wrap = d3.select(".wrap").node();
 var width = +wrap.getBoundingClientRect().width,
     height = +wrap.getBoundingClientRect().height;
 
-console.log(width, height)
-
 // Map and projection
 var projection = d3.geoMercator()
     .scale((Math.min(width/ Math.PI, (height-20)/ Math.PI))*0.8)
@@ -150,9 +148,34 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       }
     });
 
-
     // Filter to only include movements from Syria
     data = data.filter(function(d) {return d.origin === 'Syrian Arab Republic'})
+
+    // Aggregate the data to sum up the different types of requests
+    var newdata = []
+    d3.nest()
+      .key(d => d.year)
+      .key(d => d.dest)
+      .rollup(function(leaves){
+        return {
+          decided: d3.sum(leaves, function(d){
+              return d.decided;
+            }),
+          coordinates: leaves[0].coordinates
+        };
+    }).entries(data)
+    .forEach(function(i) {
+      i.values.forEach(function(j) {
+        newdata.push({
+          year: i.key,
+          dest: j.key,
+          decided: j.value.decided,
+          coordinates: j.value.coordinates
+        })
+      })
+    });
+
+    data = newdata
     console.log(data)
 
     // Draw the map
@@ -171,20 +194,26 @@ function ready(error, dataGeo, dataConn, dataCoord) {
     updateYear(2000, false)
 
     function updateYear(year, changeText) {
+      // update the chart based on the year on the slider
       if (changeText) {
         d3.select("#sliderValue").text(year)
       }
-      const maxStrokeWidth = 15
       console.log("Updated to " + year)
-      // update the chart based on the year on the slider
-      var filteredLinks = data
-        .filter(d => d.year === year)
+
+      // Filter data to get only entries for the year
+      var filteredLinks = data.filter(d => d.year == year)
+      
+      // Path width scaling
+      const maxStrokeWidth = 15
       const pathScale = d3.scaleLinear()
-        .domain([0, 10000])
+        .domain([0, 400000])
         .range([2, maxStrokeWidth])
 
+      // Remove all previous paths
       var update = svg.selectAll(".myPath")
           .data(data).remove()
+
+      // Add relevant paths
       update = svg.selectAll(".myPath")
           .data(filteredLinks)
       update.enter()
@@ -223,9 +252,8 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         .remove()
       }
 
-    // year slider update
+    // Event listener for year slider updates
     d3.select("#yearSlider").on("input", function(){
-      console.log("year changed")
       updateYear(+this.value, true)
     })
 
