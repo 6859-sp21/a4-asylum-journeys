@@ -165,14 +165,14 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       .range([ 0, width*0.88 ]);
     svg_line.append("g")
       .attr("transform", "translate(0," + 100 + ")")
-      .call(d3.axisBottom(x));
+      .call(d3.axisBottom(x).tickFormat(d3.format("d")));
 
     // Add Y axis
     var y = d3.scaleLinear()
       .domain([0, d3.max(lineData, function(d) { return +d.value; })])
       .range([ 100, 0 ]);
     svg_line.append("g")
-      .call(d3.axisLeft(y));
+      .call(d3.axisLeft(y).tickFormat(d3.format("d")));
 
     // text label for the y axis
     svg_line.append("text")
@@ -321,7 +321,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         .data(dataGeo.features)
         .on("mouseover", function(event, d) {
           countryID = d3.select(this).attr("country-id")
-          console.log(countryID)
+          //console.log(countryID)
           countryPath = d3.select(".myPath[destID='"+ countryID + "']")
           if (!countryPath.empty()) {
             d3.select(this)
@@ -341,7 +341,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         })
         .on("mouseout", function(event, d) {
           countryID = d3.select(this).attr("country-id")
-          console.log(countryID)
+          //console.log(countryID)
           countryPath = d3.select(".myPath[destID='"+ countryID + "']")
           if (!countryPath.empty())
           {
