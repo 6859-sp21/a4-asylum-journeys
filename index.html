@@ -210,6 +210,8 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         dest: (dest !== undefined) ? dest['Country']: 'null',
         destID: (dest !== undefined) ? dest['Alpha-3 code']: 'null',
         decided: +connection['Total Decided'],
+        accepted: +connection['Recognized'],
+        rejected: +connection['Rejected'],
         year: +connection['Year'],
         coordinates: [source, target]
       }
@@ -228,6 +230,12 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           decided: d3.sum(leaves, function(d){
               return d.decided;
             }),
+          accepted: d3.sum(leaves, function(d){
+              return d.accepted;
+            }),
+          rejected: d3.sum(leaves, function(d){
+              return d.rejected;
+            }),
           coordinates: leaves[0].coordinates,
           destID: leaves[0].destID
         };
@@ -239,6 +247,8 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           dest: j.key,
           destID: j.value.destID,
           decided: j.value.decided,
+          accepted: j.value.accepted,
+          rejected: j.value.rejected,
           coordinates: j.value.coordinates
         })
       })
@@ -308,6 +318,8 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           .attr("dest", d => d.dest)
           .attr("destID", d => d.destID.trim())
           .attr("decided", d => d.decided)
+          .attr("accepted", d => d.accepted)
+          .attr("rejected", d => d.rejected)
           .style("fill", "none")
           .style("stroke", "#69b3a2")
           .style("stroke-width", d => pathScale(d.decided))
@@ -333,10 +345,13 @@ function ready(error, dataGeo, dataConn, dataCoord) {
             tooltip.transition()
                  .duration(200)
                  .style("opacity", .9);
-               tooltip.html("Destination: " + countryPath.attr("dest") + "<br/> Number of asylum requests: " + countryPath.attr("decided"))
-                 .style("left", (event.pageX) + "px")
+               tooltip.html("Destination: " + countryPath.attr("dest") + 
+                            "<br/> Number of asylum requests: " + countryPath.attr("decided") +
+                            "<br/> Number of accepted requests: " + countryPath.attr("accepted") +
+                            "<br/> Number of rejected requests: " + countryPath.attr("rejected"))
+                 .style("left", "100px")
                  //.style("background", colorScale(d.cluster))
-                 .style("top", (event.pageY - 28) + "px");
+                 .style("bottom", "0px");
           }
         })
         .on("mouseout", function(event, d) {
