@@ -188,7 +188,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
     svg_line.append("path")
       .datum(lineData)
       .attr("fill", "none")
-      .attr("stroke", "steelblue")
+      .attr("stroke", "#69b3a2")
       .attr("stroke-width", 1.5)
       .attr("d", d3.line()
         .x(function(d) { return x(d.key) })
@@ -279,11 +279,11 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         .enter()
         .append("circle")
           .attr("class", "myCircles")
-          .attr("fill", "red")
+          .attr("fill", "steelblue")
           .attr("stroke", "none")
           .attr("cx", function(d) { return x(d.key) })
           .attr("cy", function(d) { return y(d.value) })
-          .attr("r", 3)
+          .attr("r", 5)
 
       // Filter data to get only entries for the year
       var filteredLinks = data.filter(d => d.year == year)
