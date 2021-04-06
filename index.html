@@ -45,7 +45,7 @@ body, html {
 
 div.tooltip {
   position: absolute;
-  text-align: center;
+  text-align: left;
   width: auto;
   height: auto;
   padding: 2px;
@@ -210,8 +210,10 @@ function ready(error, dataGeo, dataConn, dataCoord) {
         dest: (dest !== undefined) ? dest['Country']: 'null',
         destID: (dest !== undefined) ? dest['Alpha-3 code']: 'null',
         decided: +connection['Total Decided'],
-        accepted: +connection['Recognized'],
+        recognized: +connection['Recognized'],
         rejected: +connection['Rejected'],
+        cprotection: +connection['Complementary Protection'],
+        closed: +connection['Otherwise Closed'],
         year: +connection['Year'],
         coordinates: [source, target]
       }
@@ -230,11 +232,17 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           decided: d3.sum(leaves, function(d){
               return d.decided;
             }),
-          accepted: d3.sum(leaves, function(d){
-              return d.accepted;
+          recognized: d3.sum(leaves, function(d){
+              return d.recognized;
             }),
           rejected: d3.sum(leaves, function(d){
               return d.rejected;
+            }),
+          cprotection: d3.sum(leaves, function(d){
+              return d.cprotection;
+            }),
+          closed: d3.sum(leaves, function(d){
+              return d.closed;
             }),
           coordinates: leaves[0].coordinates,
           destID: leaves[0].destID
@@ -247,8 +255,10 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           dest: j.key,
           destID: j.value.destID,
           decided: j.value.decided,
-          accepted: j.value.accepted,
+          recognized: j.value.recognized,
           rejected: j.value.rejected,
+          cprotection: j.value.cprotection,
+          closed: j.value.closed,
           coordinates: j.value.coordinates
         })
       })
@@ -318,8 +328,10 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           .attr("dest", d => d.dest)
           .attr("destID", d => d.destID.trim())
           .attr("decided", d => d.decided)
-          .attr("accepted", d => d.accepted)
+          .attr("recognized", d => d.recognized)
           .attr("rejected", d => d.rejected)
+          .attr("cprotection", d => d.cprotection)
+          .attr("closed", d => d.closed)
           .style("fill", "none")
           .style("stroke", "#69b3a2")
           .style("stroke-width", d => pathScale(d.decided))
@@ -346,9 +358,11 @@ function ready(error, dataGeo, dataConn, dataCoord) {
                  .duration(200)
                  .style("opacity", .9);
                tooltip.html("Destination: " + countryPath.attr("dest") + 
-                            "<br/> Number of asylum requests: " + countryPath.attr("decided") +
-                            "<br/> Number of accepted requests: " + countryPath.attr("accepted") +
-                            "<br/> Number of rejected requests: " + countryPath.attr("rejected"))
+                            "<br/> Total number of asylum requests: " + countryPath.attr("decided") +
+                            "<br/> Recognized: " + countryPath.attr("recognized") +
+                            "<br/> Complementary Protection: " + countryPath.attr("cprotection") +
+                            "<br/> Otherwise Closed: " + countryPath.attr("closed") +
+                            "<br/> Rejected: " + countryPath.attr("rejected"))
                  .style("left", "100px")
                  //.style("background", colorScale(d.cluster))
                  .style("bottom", "0px");
