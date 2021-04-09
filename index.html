@@ -309,10 +309,23 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       var filteredLinks = data.filter(d => d.year == year)
       
       // Path width scaling
-      const maxStrokeWidth = 10
+      const maxStrokeWidth = 2
       const pathScale = d3.scaleLinear()
         .domain([1, 400000])
-        .range([2, maxStrokeWidth])
+        .range([2, 2])
+      const colorScale = d3.scaleLog()
+        .domain([1, d3.max(data, (d) => d.decided)])
+        .range(["#b8b8b8", "#007a3d"])
+        
+      function colorCountry(d) {
+        countryID = d3.select(this).attr("country-id")
+        countryPath = d3.select(".myPath[destID='"+ countryID + "']")
+        if (!countryPath.empty()) {
+          return colorScale(countryPath.attr("decided"))
+        } else {
+          return colorScale(1)
+        }
+      }
 
       // Remove all previous paths
       var update = svg.selectAll(".myPath")
@@ -340,6 +353,10 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       update.exit()
         .remove()
         // highlight path to country upon mouseover
+      countries = svg
+        .selectAll("path")
+        .data(dataGeo.features)
+        .attr("fill", colorCountry)
       svg
         .selectAll("path")
         .data(dataGeo.features)
@@ -364,7 +381,6 @@ function ready(error, dataGeo, dataConn, dataCoord) {
                             "<br/> Otherwise Closed: " + countryPath.attr("closed") +
                             "<br/> Rejected: " + countryPath.attr("rejected"))
                  .style("left", "100px")
-                 //.style("background", colorScale(d.cluster))
                  .style("top", height + "px");
           }
         })
@@ -376,7 +392,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           {
             d3.select(this)
               .style("stroke-width", 0)
-              .attr("fill", "#b8b8b8")
+              .attr("fill", colorCountry)
             countryPath
               .style("stroke", "#007a3d")
               .style("opacity", 1)
