@@ -370,6 +370,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       countries = svg
         .selectAll("path")
         .data(dataGeo.features)
+        .transition().duration(1000)
         .attr("fill", colorCountry)
       svg
         .selectAll("path")
