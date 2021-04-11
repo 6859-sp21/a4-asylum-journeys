@@ -84,7 +84,7 @@ div.tooltip {
 <div class="wrap">
 <div id="line_chart"> </div>
 <div class="sliderBox">
-<span id="sliderValue">Slide for year</span>
+<span id="sliderValue">Slide to change the year</span>
 <input type="range" name="yearSlider" id="yearSlider" min="2000" max="2020" value="2000">
 </div>
 <!-- Create an element where the map will take place -->
@@ -295,18 +295,15 @@ function ready(error, dataGeo, dataConn, dataCoord) {
 
 
     updateYear(2000);
+    updateSlider(2000, false);
 
     svg.call(zoom);
 
-    function updateYear(year) {
-      // update the chart based on the year on the slider
-      console.log("Updated to " + year)
-
-      // zoom back out
-      svg.transition()
-        .duration(750)
-        .call(zoom.transform, d3.zoomIdentity);
-
+    function updateSlider(year, changeText) {
+      if (changeText) {
+        d3.select("#sliderValue").text(year)
+      }
+      // Update circle on line chart
       svg_line.selectAll(".myCircles")
         .data(lineData).remove();
       svg_line.selectAll(".myCircles")
@@ -319,6 +316,15 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           .attr("cx", function(d) { return x(d.key) })
           .attr("cy", function(d) { return y(d.value) })
           .attr("r", 5)
+    }
+    function updateYear(year) {
+      // update the chart based on the year on the slider
+      console.log("Updated to " + year)
+
+      // zoom back out
+      svg.transition()
+        .duration(750)
+        .call(zoom.transform, d3.zoomIdentity);
 
       // Filter data to get only entries for the year
       var filteredLinks = data.filter(d => d.year == year)
@@ -425,7 +431,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
       updateYear(+this.value)
     })
     d3.select("#yearSlider").on("input", function(){
-      d3.select("#sliderValue").text(+this.value)
+      updateSlider(+this.value, true)
     })
 
 
