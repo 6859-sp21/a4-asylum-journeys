@@ -301,7 +301,7 @@ function ready(error, dataGeo, dataConn, dataCoord) {
 
     function updateSlider(year, changeText) {
       if (changeText) {
-        d3.select("#sliderValue").text(year)
+        d3.select("#sliderValue").text("Syrian asylum requests in " + year)
       }
       // Update circle on line chart
       svg_line.selectAll(".myCircles")
