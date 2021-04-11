@@ -1,0 +1,444 @@
+<!-- Code from d3-graph-gallery.com -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<style>
+/* css goes here */
+body, html {
+  font-family: Helvetica, sans-serif;
+  height: 90%;
+  text-align: center;
+}
+
+.wrap{
+  position: relative;
+  display: block;
+  width: 90%;
+  margin: 10px auto;
+}
+
+#line_chart {
+  width: 100%;
+  text-align: center;
+}
+
+.sliderBox {
+  width: 100%;
+  text-align: center;
+}
+
+#line_chart svg{
+  width: 100%;
+}
+
+#sliderValue {
+  width: 100%;
+}
+#yearSlider {
+  width: 100%;
+}
+
+#my_dataviz {
+  width: 100%;
+  height: 500px;
+}
+
+div.tooltip {
+  position: absolute;
+  text-align: left;
+  width: auto;
+  height: auto;
+  padding: 2px;
+  font: 12px sans-serif;
+  background: white;
+  border: 0px;
+  border-radius: 8px;
+  pointer-events: none;
+  padding: 5px;
+}
+
+.myPath {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: dash 5s linear forwards;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+</style>
+</head>
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+
+
+<body>
+  <h1>Requests for Asylum by Syrian Refugees</h1>
+  <p> The Syrian civil war, which began in 2011, led to the greatest refugee crisis in history. Here's where those refugees sought asylum as the war dragged on...</p>
+<div class="wrap">
+<div id="line_chart"> </div>
+
+<div class="sliderBox">
+<span id="sliderValue">Slide to change the year</span>
+<input type="range" name="yearSlider" id="yearSlider" min="2000" max="2020" value="2000">
+</div>
+<!-- Create an element where the map will take place -->
+<svg id="my_dataviz" ></svg>
+<div class="info">
+The data is sourced from the UNHCR, available <a href="https://data.humdata.org/dataset/unhcr-population-data-for-world">here</a>.
+</div>
+</div>
+</body>
+
+
+<script>
+
+// The svg for map
+var svg = d3.select("svg");
+var wrap = d3.select(".wrap").node();
+var width = +wrap.getBoundingClientRect().width,
+    height = +wrap.getBoundingClientRect().height;
+
+// Map and projection
+var projection = d3.geoMercator()
+    .scale((Math.min(width/ Math.PI, (height-20)/ Math.PI))*0.8)
+    .translate([width/2, (height-20)/2+20])
+
+// Map zoom
+var zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
+
+function zoomed() {
+  svg.selectAll("g").style("stroke-width", 2 / d3.event.transform.k + "px");
+  svg.selectAll("g").attr("transform", d3.event.transform);
+  svg.selectAll(".myPath").style("stroke-width", 2 / d3.event.transform.k + "px");
+  svg.selectAll(".myPath").attr("transform", d3.event.transform);
+}
+
+// A path generator
+var path = d3.geoPath()
+    .projection(projection)
+
+// Add a space for the tooltip on hover
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+
+var svg_line = d3.select("#line_chart")
+      .append("svg")
+      .append("g")
+      .attr("transform",
+          "translate(" + 70 + "," + 10 + ")");
+
+
+function join(lookupTable, mainTable, lookupKey, mainKey1, mainKey2, select) {
+    var l = lookupTable.length,
+        m = mainTable.length,
+        lookupIndex = [],
+        output = [];
+    for (var i = 0; i < l; i++) { // loop through l items
+        var row = lookupTable[i];
+        lookupIndex[row[lookupKey].trim()] = row; // create an index for lookup table
+    }
+    //console.log(lookupIndex)
+    for (var j = 0; j < m; j++) { // loop through m items
+        var y = mainTable[j];
+        var x = lookupIndex[y[mainKey1]]; // get corresponding row from lookupTable
+        var z = lookupIndex[y[mainKey2]]; // get corresponding row from lookupTable
+        output.push(select(y, x, z)); // select only the columns you need
+    }
+    return output;
+};
+
+// Load world shape AND list of connection
+d3.queue()
+  .defer(d3.json, "https://6859-sp21.github.io/a4-asylum-journeys/world.geojson")  // World shape
+  .defer(d3.csv, "https://6859-sp21.github.io/a4-asylum-journeys/asylum_decisions_residing_world.csv") // Connections (asylum_decisions_residing_world)
+  .defer(d3.csv, "https://6859-sp21.github.io/a4-asylum-journeys/countries_codes_and_coordinates.csv") // Country center coordinates
+  .await(ready);
+
+function ready(error, dataGeo, dataConn, dataCoord) {
+    // Add top line chart
+    var lineData = d3.nest()
+      .key(d => +d.Year)
+      .rollup(function(leaves){
+        return d3.sum(leaves, function(d){
+              return d['Total Decided'];
+            });
+    }).entries(dataConn.filter(d => d["Country of Origin Code"] == "SYR"))
+
+    console.log(lineData)
+
+    // Add x axis
+    var x = d3.scaleLinear()
+      .domain(d3.extent(lineData, function(d) { return +d.key; }))
+      .range([ 0, width*0.88 ]);
+    svg_line.append("g")
+      .attr("transform", "translate(0," + 100 + ")")
+      .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+
+    // Add Y axis
+    var y = d3.scaleLinear()
+      .domain([0, d3.max(lineData, function(d) { return +d.value; })])
+      .range([ 100, 0 ]);
+    svg_line.append("g")
+      .call(d3.axisLeft(y).tickFormat(d3.format("d")));
+
+    // text label for the y axis
+    svg_line.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - 70)
+        .attr("x",0 - (100/ 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .style("font-size", "14px")
+        .text("Asylum Requests");  
+
+    // Add the line
+    svg_line.append("path")
+      .datum(lineData)
+      .attr("fill", "none")
+      .attr("stroke", "#007a3d")
+      .attr("stroke-width", 1.5)
+      .attr("d", d3.line()
+        .x(function(d) { return x(d.key) })
+        .y(function(d) { return y(+d.value) })
+        )
+
+    // Join and reformat data 
+    var data = join(dataCoord, dataConn, "Alpha-3 code", "Country of Origin Code", "Country of Asylum Code", function(connection, origin, dest) {
+        long1 = (origin !== undefined) ? parseFloat(origin['Longitude (average)']) : 1
+        lat1  = (origin !== undefined) ? parseFloat(origin['Latitude (average)']): 1
+        long2 = (dest !== undefined) ? parseFloat(dest['Longitude (average)']) : 1
+        lat2  = (dest !== undefined) ? parseFloat(dest['Latitude (average)']): 1
+        source = [+long1, +lat1]
+        target = [+long2, +lat2]
+      return {
+        source: source,
+        target: target,
+        origin: (origin !== undefined) ? origin['Country']: 'null',
+        dest: (dest !== undefined) ? dest['Country']: 'null',
+        destID: (dest !== undefined) ? dest['Alpha-3 code']: 'null',
+        decided: +connection['Total Decided'],
+        recognized: +connection['Recognized'],
+        rejected: +connection['Rejected'],
+        cprotection: +connection['Complementary Protection'],
+        closed: +connection['Otherwise Closed'],
+        year: +connection['Year'],
+        coordinates: [source, target]
+      }
+    });
+
+    // Filter to only include movements from Syria
+    data = data.filter(function(d) {return d.origin === 'Syrian Arab Republic'})
+
+    // Aggregate the data to sum up the different types of requests
+    var newdata = []
+    d3.nest()
+      .key(d => d.year)
+      .key(d => d.dest)
+      .rollup(function(leaves){
+        return {
+          decided: d3.sum(leaves, function(d){
+              return d.decided;
+            }),
+          recognized: d3.sum(leaves, function(d){
+              return d.recognized;
+            }),
+          rejected: d3.sum(leaves, function(d){
+              return d.rejected;
+            }),
+          cprotection: d3.sum(leaves, function(d){
+              return d.cprotection;
+            }),
+          closed: d3.sum(leaves, function(d){
+              return d.closed;
+            }),
+          coordinates: leaves[0].coordinates,
+          destID: leaves[0].destID
+        };
+    }).entries(data)
+    .forEach(function(i) {
+      i.values.forEach(function(j) {
+        newdata.push({
+          year: i.key,
+          dest: j.key,
+          destID: j.value.destID,
+          decided: j.value.decided,
+          recognized: j.value.recognized,
+          rejected: j.value.rejected,
+          cprotection: j.value.cprotection,
+          closed: j.value.closed,
+          coordinates: j.value.coordinates
+        })
+      })
+    });
+
+    data = newdata
+    console.log(data)
+
+    // Draw the map
+    svg.append("g")
+      .selectAll("path")
+      .data(dataGeo.features)
+      .enter().append("path")
+          .attr("fill", "#b8b8b8")
+          .attr("d", d3.geoPath()
+              .projection(projection)
+          )
+          .attr("class", "country")
+          .attr("country-name", d => d.properties.name)
+          .attr("country-id", d => d.id)
+          .style("stroke", "#fff")
+          .style("stroke-width", 0)
+
+
+    updateYear(2000);
+    updateSlider(2000, false);
+
+    svg.call(zoom);
+
+    function updateSlider(year, changeText) {
+      if (changeText) {
+        d3.select("#sliderValue").text("Syrian asylum requests in " + year)
+      }
+      // Update circle on line chart
+      svg_line.selectAll(".myCircles")
+        .data(lineData).remove();
+      svg_line.selectAll(".myCircles")
+        .data(lineData.filter(d => d.key == year))
+        .enter()
+        .append("circle")
+          .attr("class", "myCircles")
+          .attr("fill", "steelblue")
+          .attr("stroke", "none")
+          .attr("cx", function(d) { return x(d.key) })
+          .attr("cy", function(d) { return y(d.value) })
+          .attr("r", 5)
+    }
+    function updateYear(year) {
+      // update the chart based on the year on the slider
+      console.log("Updated to " + year)
+
+      // zoom back out
+      svg.transition()
+        .duration(750)
+        .call(zoom.transform, d3.zoomIdentity);
+
+      // Filter data to get only entries for the year
+      var filteredLinks = data.filter(d => d.year == year)
+      
+      // Path width scaling
+      const maxStrokeWidth = 2
+      const pathScale = d3.scaleLinear()
+        .domain([1, 400000])
+        .range([2, 2])
+      const colorScale = d3.scaleLog()
+        .domain([1, d3.max(data, (d) => d.decided)])
+        .range(["#b8b8b8", "#007a3d"])
+        
+      function colorCountry(d) {
+        countryID = d3.select(this).attr("country-id")
+        countryPath = d3.select(".myPath[destID='"+ countryID + "']")
+        if (!countryPath.empty()) {
+          return colorScale(countryPath.attr("decided"))
+        } else {
+          return colorScale(1)
+        }
+      }
+
+      // Remove all previous paths
+      var update = svg.selectAll(".myPath")
+          .data(data).remove()
+
+      // Add relevant paths
+      update = svg.selectAll(".myPath")
+          .data(filteredLinks)
+      update.enter()
+        .append("path")
+          .attr("class", "myPath")
+          .attr("d", function(d){ return path({type:"LineString", coordinates:d.coordinates})})
+          .attr("dest", d => d.dest)
+          .attr("destID", d => d.destID.trim())
+          .attr("decided", d => d.decided)
+          .attr("recognized", d => d.recognized)
+          .attr("rejected", d => d.rejected)
+          .attr("cprotection", d => d.cprotection)
+          .attr("closed", d => d.closed)
+          .style("fill", "none")
+          .style("stroke", "#007a3d")
+          .style("stroke-width", d => pathScale(d.decided))
+          .style("opacity", .5)
+                    
+      update.exit()
+        .remove()
+        // highlight path to country upon mouseover
+      countries = svg
+        .selectAll("path")
+        .data(dataGeo.features)
+        .transition().duration(1000)
+        .attr("fill", colorCountry)
+      svg
+        .selectAll("path")
+        .data(dataGeo.features)
+        .on("mouseover", function(event, d) {
+          countryID = d3.select(this).attr("country-id")
+          //console.log(countryID)
+          countryPath = d3.select(".myPath[destID='"+ countryID + "']")
+          if (!countryPath.empty()) {
+            d3.select(this)
+              .style("stroke-width", 1)
+              .attr("fill", "#007a3d")
+            countryPath
+              .style("stroke", "#000000")
+              .style("opacity", 1)
+            tooltip.transition()
+                 .duration(200)
+                 .style("opacity", .9);
+               tooltip.html("Destination: " + countryPath.attr("dest") + 
+                            "<br/> Total number of asylum requests: " + countryPath.attr("decided") +
+                            "<br/> Recognized: " + countryPath.attr("recognized") +
+                            "<br/> Complementary Protection: " + countryPath.attr("cprotection") +
+                            "<br/> Otherwise Closed: " + countryPath.attr("closed") +
+                            "<br/> Rejected: " + countryPath.attr("rejected"))
+                 .style("left", "100px")
+                 .style("top", height + "px");
+          }
+        })
+        .on("mouseout", function(event, d) {
+          countryID = d3.select(this).attr("country-id")
+          //console.log(countryID)
+          countryPath = d3.select(".myPath[destID='"+ countryID + "']")
+          if (!countryPath.empty())
+          {
+            d3.select(this)
+              .style("stroke-width", 0)
+              .attr("fill", colorCountry)
+            countryPath
+              .style("stroke", "#007a3d")
+              .style("opacity", 1)
+            tooltip.transition()
+                 .duration(500)
+                 .style("opacity", 0);
+          }
+        });
+      
+    }
+
+    // Event listener for year slider updates
+    d3.select("#yearSlider").on("change", function(){
+      updateYear(+this.value)
+    })
+    d3.select("#yearSlider").on("input", function(){
+      updateSlider(+this.value, true)
+    })
+
+
+}
+
+</script>
