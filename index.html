@@ -293,15 +293,12 @@ function ready(error, dataGeo, dataConn, dataCoord) {
           .style("stroke-width", 0)
 
 
-    updateYear(2000, false);
+    updateYear(2000);
 
     svg.call(zoom);
 
-    function updateYear(year, changeText) {
+    function updateYear(year) {
       // update the chart based on the year on the slider
-      if (changeText) {
-        d3.select("#sliderValue").text(year)
-      }
       console.log("Updated to " + year)
 
       // zoom back out
@@ -422,9 +419,13 @@ function ready(error, dataGeo, dataConn, dataCoord) {
     }
 
     // Event listener for year slider updates
-    d3.select("#yearSlider").on("input", function(){
-      updateYear(+this.value, true)
+    d3.select("#yearSlider").on("change", function(){
+      updateYear(+this.value)
     })
+    d3.select("#yearSlider").on("input", function(){
+      d3.select("#sliderValue").text(+this.value)
+    })
+
 
 }
 
